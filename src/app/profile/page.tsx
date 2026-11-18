@@ -70,12 +70,14 @@ function ProfileContent() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel stack">
-        <h1>Profile</h1>
-        <p className="muted">
-          Signed in as <span className="chip">{user?.email}</span> ({user?.role})
-        </p>
+        <div className="page-head">
+          <h1>Profile</h1>
+          <p className="muted">
+            Signed in as <span className="chip">{user?.email}</span> ({user?.role})
+          </p>
+        </div>
         {error && <div className="error">{error}</div>}
         {message && <p className="muted">{message}</p>}
         <form className="stack" onSubmit={onSaveProfile}>

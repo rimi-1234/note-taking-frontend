@@ -43,10 +43,12 @@ function AdminInterestsContent() {
   }, [page, filter]);
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel stack">
-        <h1>Admin · Interests</h1>
-        <p className="muted">Grouped from one aggregation on the interests index.</p>
+        <div className="page-head">
+          <h1>Admin · Interests</h1>
+          <p className="muted">Grouped from one aggregation on the interests index.</p>
+        </div>
         {error && <div className="error">{error}</div>}
         <form
           className="row"

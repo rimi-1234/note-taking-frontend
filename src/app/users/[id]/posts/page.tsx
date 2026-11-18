@@ -83,21 +83,23 @@ function UserPostsContent() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel">
-        <h1>{result ? `${result.user.name}'s posts` : 'Posts'}</h1>
-        {result && (
-          <p className="muted">
-            Interests:{' '}
-            {result.user.interests.length
-              ? result.user.interests.map((item) => (
-                  <span key={item} className="chip" style={{ marginRight: 6 }}>
-                    {item}
-                  </span>
-                ))
-              : 'none'}
-          </p>
-        )}
+        <div className="page-head">
+          <h1>{result ? `${result.user.name}'s posts` : 'Posts'}</h1>
+          {result && (
+            <p className="muted">
+              Interests:{' '}
+              {result.user.interests.length
+                ? result.user.interests.map((item) => (
+                    <span key={item} className="chip" style={{ marginRight: 6 }}>
+                      {item}
+                    </span>
+                  ))
+                : 'none'}
+            </p>
+          )}
+        </div>
         {error && <div className="error">{error}</div>}
       </section>
 

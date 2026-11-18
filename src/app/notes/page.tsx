@@ -89,12 +89,14 @@ function NotesContent() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel">
-        <h1>My notes</h1>
-        <p className="muted">Private notes only you can edit. Admins can view but not change them.</p>
+        <div className="page-head">
+          <h1>My notes</h1>
+          <p className="muted">Private notes only you can edit. Admins can view but not change them.</p>
+        </div>
         {error && <div className="error">{error}</div>}
-        <form className="stack" onSubmit={onCreate}>
+        <form className="stack" onSubmit={onCreate} style={{ marginTop: '1rem' }}>
           <label>
             Title
             <input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
@@ -109,7 +111,7 @@ function NotesContent() {
         </form>
       </section>
 
-      <section className="panel stack">
+      <section className="panel stack page-enter-delay">
         <h2>Notes</h2>
         <div className="list">
           {result?.data.map((note) => (

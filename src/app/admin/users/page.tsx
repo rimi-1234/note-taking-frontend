@@ -122,9 +122,11 @@ function AdminUsersContent() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel stack">
-        <h1>Admin · Users</h1>
+        <div className="page-head">
+          <h1>Admin · Users</h1>
+        </div>
         {error && <div className="error">{error}</div>}
         <form className="stack" onSubmit={onCreate}>
           <h2>Create user</h2>

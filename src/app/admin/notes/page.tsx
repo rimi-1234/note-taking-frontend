@@ -54,10 +54,12 @@ function AdminNotesContent() {
   }, [page, owner]);
 
   return (
-    <div className="stack">
+    <div className="stack page-enter">
       <section className="panel stack">
-        <h1>Admin · All notes</h1>
-        <p className="muted">View-only. Filtering uses the owner index.</p>
+        <div className="page-head">
+          <h1>Admin · All notes</h1>
+          <p className="muted">View-only. Filtering uses the owner index.</p>
+        </div>
         {error && <div className="error">{error}</div>}
         <label>
           Filter by owner
