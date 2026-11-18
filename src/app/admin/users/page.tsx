@@ -19,6 +19,7 @@ import {
 } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { isDemoAccount } from '@/lib/demo';
 import { parseList } from '@/lib/format';
 import { ApiError, type Paginated, type PublicUser, type UserRole } from '@/lib/types';
 
@@ -35,6 +36,7 @@ const emptyForm: FormState = { name: '', email: '', password: '', role: 'user', 
 
 function AdminUsersContent() {
   const { user: me } = useAuth();
+  const readOnly = isDemoAccount(me?.email);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paginated<PublicUser> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,11 +137,18 @@ function AdminUsersContent() {
         title="Users"
         description="Create accounts, change roles, and remove users along with their content."
         actions={
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
+          <button type="button" className="btn btn-primary" onClick={openCreate} disabled={readOnly}>
             <PlusIcon size={16} /> New user
           </button>
         }
       />
+
+      {readOnly && (
+        <div className="notice">
+          <strong>Demo mode.</strong> You can explore every admin page, but creating, editing and deleting users is
+          turned off for the demo admin.
+        </div>
+      )}
 
       {result ? (
         <div className="stats-grid">
@@ -211,15 +220,22 @@ function AdminUsersContent() {
                 <Link href={`/users/${u._id}/posts`} className="icon-btn" aria-label={`View ${u.name}'s posts`} title="Posts">
                   <PostIcon size={18} />
                 </Link>
-                <button type="button" className="icon-btn" aria-label={`Edit ${u.name}`} title="Edit" onClick={() => openEdit(u)}>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Edit ${u.name}`}
+                  title={readOnly ? 'Disabled in demo mode' : 'Edit'}
+                  disabled={readOnly}
+                  onClick={() => openEdit(u)}
+                >
                   <EditIcon size={18} />
                 </button>
                 <button
                   type="button"
                   className="icon-btn icon-btn-danger"
                   aria-label={`Delete ${u.name}`}
-                  title={u._id === me?._id ? 'You cannot delete yourself' : 'Delete'}
-                  disabled={busy || u._id === me?._id}
+                  title={readOnly ? 'Disabled in demo mode' : u._id === me?._id ? 'You cannot delete yourself' : 'Delete'}
+                  disabled={busy || readOnly || u._id === me?._id}
                   onClick={() => onDelete(u)}
                 >
                   <TrashIcon size={18} />

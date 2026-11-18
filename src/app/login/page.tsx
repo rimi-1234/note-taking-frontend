@@ -7,6 +7,7 @@ import { LockIcon, MailIcon, ShieldIcon, SparkIcon, NoteIcon } from '@/component
 import { Alert, Avatar, PasswordInput } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { DEMO_PASSWORD, demoAccounts } from '@/lib/demo';
 import { ApiError } from '@/lib/types';
 
 function loginErrorMessage(err: unknown): string {
@@ -24,14 +25,6 @@ const highlights = [
   { icon: <SparkIcon size={18} />, text: 'Admin insights across users' },
 ];
 
-// Public demo accounts created by `npm run seed:demo` in the backend (regular users, no admin rights).
-const DEMO_PASSWORD = 'Demo12345!';
-const demoAccounts = [
-  { name: 'Alice Writer', email: 'alice@example.com', tagline: 'Chess & reading' },
-  { name: 'Bob Reader', email: 'bob@example.com', tagline: 'Reading & music' },
-  { name: 'Carol Coder', email: 'carol@example.com', tagline: 'Chess & coding' },
-];
-
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const router = useRouter();
@@ -40,6 +33,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [demoEmail, setDemoEmail] = useState<string | null>(null);
+  // Server-rendered buttons ignore clicks until React hydrates; keep them disabled until then.
+  const [interactive, setInteractive] = useState(false);
+
+  useEffect(() => setInteractive(true), []);
 
   useEffect(() => {
     if (!loading && user) router.replace('/notes');
@@ -146,7 +143,7 @@ export default function LoginPage() {
             />
           </label>
 
-          <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={submitting || loading}>
+          <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={submitting || !interactive}>
             {submitting && !demoEmail ? <span className="btn-spinner" aria-hidden /> : null}
             {submitting && !demoEmail ? 'Signing in…' : 'Sign in'}
           </button>
@@ -162,12 +159,15 @@ export default function LoginPage() {
                 type="button"
                 className="demo-account"
                 style={{ '--i': i } as React.CSSProperties}
-                disabled={submitting || loading}
+                disabled={submitting || !interactive}
                 onClick={() => onDemo(account.email)}
               >
                 <Avatar name={account.name} size="sm" />
                 <span className="demo-account-text">
-                  <strong>{account.name}</strong>
+                  <strong>
+                    {account.name}
+                    <span className={`badge ${account.role === 'Admin' ? 'badge-admin' : ''}`}>{account.role}</span>
+                  </strong>
                   <span>{account.tagline}</span>
                 </span>
                 {demoEmail === account.email ? (

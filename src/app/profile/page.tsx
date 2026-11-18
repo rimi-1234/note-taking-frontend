@@ -7,6 +7,7 @@ import { ClockIcon, CrownIcon, LockIcon, TagIcon, UserIcon } from '@/components/
 import { Alert, Avatar, PageHeader, PasswordInput, StatCard } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { isDemoAccount } from '@/lib/demo';
 import { formatDate, parseList } from '@/lib/format';
 import { ApiError, type PublicUser } from '@/lib/types';
 
@@ -159,7 +160,11 @@ function ProfileContent() {
             </span>
             <h2>Change password</h2>
           </div>
-          <p className="muted small">For your safety, this signs you out on every device.</p>
+          {isDemoAccount(user?.email) ? (
+            <div className="notice">Password changes are turned off for demo accounts so everyone can keep using them.</div>
+          ) : (
+            <p className="muted small">For your safety, this signs you out on every device.</p>
+          )}
           <label className="field">
             <span>Current password</span>
             <PasswordInput
@@ -181,7 +186,7 @@ function ProfileContent() {
             <small className="hint">At least 8 characters.</small>
           </label>
           <div className="form-actions">
-            <button className="btn btn-dark" type="submit" disabled={busy}>
+            <button className="btn btn-dark" type="submit" disabled={busy || isDemoAccount(user?.email)}>
               Update password
             </button>
           </div>

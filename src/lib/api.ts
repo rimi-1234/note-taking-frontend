@@ -2,6 +2,20 @@ import { ApiError, type ApiErrorBody } from './types';
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '');
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+/** fetch that gives up after REQUEST_TIMEOUT_MS so a hung connection surfaces as an error instead of spinning forever. */
+async function request(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+  } catch (err) {
+    if (err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new ApiError(0, 'TIMEOUT', 'The server took too long to respond. Check your connection and try again.');
+    }
+    throw err;
+  }
+}
+
 type TokenStore = {
   getAccessToken: () => string | null;
   setAccessToken: (token: string | null) => void;
@@ -36,7 +50,7 @@ async function parseError(res: Response): Promise<ApiError> {
 async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const res = await fetch(`${API_URL}/auth/refresh`, {
+      const res = await request(buildUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -65,7 +79,8 @@ export type ApiOptions = {
 };
 
 function buildUrl(path: string, query?: ApiOptions['query']) {
-  const url = new URL(path.startsWith('http') ? path : `${API_URL}${path.startsWith('/') ? path : `/${path}`}`);
+  const target = path.startsWith('http') ? path : `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = new URL(target, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null || value === '') continue;
@@ -90,7 +105,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(buildUrl(path, query), {
+  const res = await request(buildUrl(path, query), {
     method,
     credentials: 'include',
     headers,

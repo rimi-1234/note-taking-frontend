@@ -29,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tokenRef = useRef<string | null>(null);
+  // Bumped on login/logout so a slower startup session check cannot overwrite a newer session.
+  const sessionEpoch = useRef(0);
 
   const setAccessToken = useCallback((token: string | null) => {
     tokenRef.current = token;
@@ -48,14 +50,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const epoch = sessionEpoch.current;
+    const stale = () => cancelled || sessionEpoch.current !== epoch;
     (async () => {
       try {
         const session = await refreshRequest();
-        if (cancelled) return;
+        if (stale()) return;
         setAccessToken(session.accessToken);
         setUser(session.user);
       } catch {
-        if (!cancelled) {
+        if (!stale()) {
           setAccessToken(null);
           setUser(null);
         }
@@ -71,14 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const result = await loginRequest(email, password);
+      sessionEpoch.current += 1;
       setAccessToken(result.accessToken);
       setUser(result.user);
+      setLoading(false);
     },
     [setAccessToken],
   );
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    sessionEpoch.current += 1;
     setAccessToken(null);
     setUser(null);
   }, [setAccessToken]);

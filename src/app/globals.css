@@ -1430,6 +1430,16 @@ select {
   animation: rise-in 260ms var(--ease) both;
 }
 
+.notice {
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.88rem;
+  animation: rise-in 260ms var(--ease) both;
+}
+
 .alert-error {
   color: #991b1b;
   background: var(--danger-soft);
@@ -1963,7 +1973,15 @@ select {
 }
 
 .demo-account-text strong {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 0.88rem;
+}
+
+.demo-account-text .badge {
+  padding: 0.05rem 0.45rem;
+  font-size: 0.62rem;
 }
 
 .demo-account-text span {
