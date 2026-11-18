@@ -337,6 +337,7 @@ export function PasswordInput({
   minLength,
   required,
   placeholder,
+  disabled,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -344,6 +345,7 @@ export function PasswordInput({
   minLength?: number;
   required?: boolean;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   return (
@@ -356,6 +358,7 @@ export function PasswordInput({
         minLength={minLength}
         required={required}
         placeholder={placeholder}
+        disabled={disabled}
       />
       <button
         type="button"

@@ -36,7 +36,6 @@ const emptyForm: FormState = { name: '', email: '', password: '', role: 'user', 
 
 function AdminUsersContent() {
   const { user: me } = useAuth();
-  const readOnly = isDemoAccount(me?.email);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paginated<PublicUser> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +45,7 @@ function AdminUsersContent() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
+  const editingDemo = mode === 'edit' && isDemoAccount(form.email);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -137,18 +137,11 @@ function AdminUsersContent() {
         title="Users"
         description="Create accounts, change roles, and remove users along with their content."
         actions={
-          <button type="button" className="btn btn-primary" onClick={openCreate} disabled={readOnly}>
+          <button type="button" className="btn btn-primary" onClick={openCreate}>
             <PlusIcon size={16} /> New user
           </button>
         }
       />
-
-      {readOnly && (
-        <div className="notice">
-          <strong>Demo mode.</strong> You can explore every admin page, but creating, editing and deleting users is
-          turned off for the demo admin.
-        </div>
-      )}
 
       {result ? (
         <div className="stats-grid">
@@ -224,8 +217,7 @@ function AdminUsersContent() {
                   type="button"
                   className="icon-btn"
                   aria-label={`Edit ${u.name}`}
-                  title={readOnly ? 'Disabled in demo mode' : 'Edit'}
-                  disabled={readOnly}
+                  title="Edit"
                   onClick={() => openEdit(u)}
                 >
                   <EditIcon size={18} />
@@ -234,8 +226,14 @@ function AdminUsersContent() {
                   type="button"
                   className="icon-btn icon-btn-danger"
                   aria-label={`Delete ${u.name}`}
-                  title={readOnly ? 'Disabled in demo mode' : u._id === me?._id ? 'You cannot delete yourself' : 'Delete'}
-                  disabled={busy || readOnly || u._id === me?._id}
+                  title={
+                    u._id === me?._id
+                      ? 'You cannot delete yourself'
+                      : isDemoAccount(u.email)
+                        ? 'Demo accounts cannot be deleted'
+                        : 'Delete'
+                  }
+                  disabled={busy || u._id === me?._id || isDemoAccount(u.email)}
                   onClick={() => onDelete(u)}
                 >
                   <TrashIcon size={18} />
@@ -279,12 +277,19 @@ function AdminUsersContent() {
                 autoComplete="new-password"
                 minLength={8}
                 required={mode === 'create'}
-                placeholder={mode === 'edit' ? 'Leave blank to keep' : 'At least 8 characters'}
+                disabled={editingDemo}
+                placeholder={
+                  editingDemo ? 'Locked for demo accounts' : mode === 'edit' ? 'Leave blank to keep' : 'At least 8 characters'
+                }
               />
             </label>
             <label className="field">
               <span>Role</span>
-              <select value={form.role} onChange={(e) => set('role', e.target.value as UserRole)}>
+              <select
+                value={form.role}
+                onChange={(e) => set('role', e.target.value as UserRole)}
+                disabled={editingDemo}
+              >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
