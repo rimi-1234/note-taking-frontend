@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { PageSkeleton } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
 
 export default function HomePage() {
@@ -13,5 +14,5 @@ export default function HomePage() {
     router.replace(user ? '/notes' : '/login');
   }, [loading, user, router]);
 
-  return <p className="muted">Redirecting…</p>;
+  return <PageSkeleton />;
 }

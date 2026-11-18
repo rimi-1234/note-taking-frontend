@@ -1,11 +1,14 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { RequireAuth } from '@/components/guards';
+import { PlusIcon, PostIcon, TrashIcon } from '@/components/icons';
 import { Pagination } from '@/components/pagination';
+import { Alert, Avatar, EmptyState, HeroSkeleton, PostCardSkeleton, stagger } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { relativeTime } from '@/lib/format';
 import { ApiError, type Paginated, type Post } from '@/lib/types';
 
 type UserPostsResponse = Paginated<Post> & {
@@ -33,22 +36,25 @@ function UserPostsContent() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load(nextPage = page) {
-    setError(null);
-    try {
-      const data = await api<UserPostsResponse>(`/users/${userId}/posts`, {
-        query: { page: nextPage, limit: 5 },
-      });
-      setResult(data);
-      setPage(data.page);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load posts');
-    }
-  }
+  const load = useCallback(
+    async (nextPage: number) => {
+      setError(null);
+      try {
+        const data = await api<UserPostsResponse>(`/users/${userId}/posts`, {
+          query: { page: nextPage, limit: 5 },
+        });
+        setResult(data);
+        setPage(data.page);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Failed to load posts');
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
     void load(page);
-  }, [userId, page]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, load]);
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -82,65 +88,107 @@ function UserPostsContent() {
     }
   }
 
-  return (
-    <div className="stack page-enter">
-      <section className="panel">
-        <div className="page-head">
-          <h1>{result ? `${result.user.name}'s posts` : 'Posts'}</h1>
-          {result && (
-            <p className="muted">
-              Interests:{' '}
-              {result.user.interests.length
-                ? result.user.interests.map((item) => (
-                    <span key={item} className="chip" style={{ marginRight: 6 }}>
-                      {item}
-                    </span>
-                  ))
-                : 'none'}
-            </p>
-          )}
-        </div>
-        {error && <div className="error">{error}</div>}
-      </section>
+  const authorName = result?.user.name;
 
-      {isOwn && (
-        <section className="panel">
-          <h2>New post</h2>
-          <form className="stack" onSubmit={onCreate}>
-            <label>
-              Title
-              <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </label>
-            <label>
-              Body
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} required />
-            </label>
-            <button className="btn" type="submit" disabled={busy}>
-              Publish
-            </button>
-          </form>
+  return (
+    <div className="page page-enter">
+      {result ? (
+        <section className="card author-hero">
+          <Avatar name={authorName} size="lg" />
+          <div className="profile-hero-text">
+            <span className="eyebrow">{isOwn ? 'Your posts' : 'Posts by'}</span>
+            <h1>{authorName}</h1>
+            <div className="chips">
+              {result.user.interests.length ? (
+                result.user.interests.map((item) => (
+                  <span key={item} className="chip">
+                    {item}
+                  </span>
+                ))
+              ) : (
+                <span className="meta">No interests listed</span>
+              )}
+            </div>
+          </div>
+          <span className="stat-pill">
+            <PostIcon size={16} /> {result.total} {result.total === 1 ? 'post' : 'posts'}
+          </span>
         </section>
+      ) : (
+        <HeroSkeleton />
       )}
 
-      <section className="panel stack">
-        <div className="list">
-          {result?.data.map((post) => (
-            <article key={post._id} className="card stack">
-              <h3>{post.title}</h3>
-              <p>{post.body}</p>
-              {isOwn && (
-                <button className="btn danger" type="button" disabled={busy} onClick={() => onDelete(post._id)}>
-                  Delete
-                </button>
-              )}
-            </article>
-          ))}
-          {result && result.data.length === 0 && <p className="muted">No posts yet.</p>}
-        </div>
-        {result && (
-          <Pagination page={result.page} totalPages={result.totalPages} onChange={setPage} />
+      {error && <Alert>{error}</Alert>}
+
+      <div className={isOwn ? 'split' : undefined}>
+        {isOwn && (
+          <form className="card composer" onSubmit={onCreate}>
+            <div className="card-title">
+              <span className="card-title-icon">
+                <PlusIcon size={18} />
+              </span>
+              <h2>New post</h2>
+            </div>
+            <label className="field">
+              <span>Title</span>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What's on your mind?" required />
+            </label>
+            <label className="field">
+              <span>Body</span>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Share the details…"
+                rows={6}
+                required
+              />
+            </label>
+            <div className="form-actions">
+              <button className="btn btn-primary" type="submit" disabled={busy || !title.trim() || !body.trim()}>
+                Publish
+              </button>
+            </div>
+          </form>
         )}
-      </section>
+
+        <section className="stack" aria-label="Posts">
+          <div className="feed">
+            {!result && Array.from({ length: 3 }, (_, i) => <PostCardSkeleton key={i} />)}
+            {result?.data.map((post, i) => (
+              <article key={post._id} className="card post-card" style={stagger(i)}>
+                <div className="post-card-head">
+                  <Avatar name={authorName} size="sm" />
+                  <div>
+                    <strong>{authorName}</strong>
+                    <span className="meta">{relativeTime(post.createdAt)}</span>
+                  </div>
+                  {isOwn && (
+                    <button
+                      type="button"
+                      className="icon-btn icon-btn-danger post-delete"
+                      aria-label="Delete post"
+                      disabled={busy}
+                      onClick={() => onDelete(post._id)}
+                    >
+                      <TrashIcon size={18} />
+                    </button>
+                  )}
+                </div>
+                <h3>{post.title}</h3>
+                <p className="note-body">{post.body}</p>
+              </article>
+            ))}
+          </div>
+          {result && result.data.length === 0 && (
+            <EmptyState icon={<PostIcon size={28} />} title="No posts yet">
+              {isOwn ? 'Publish your first post using the form.' : 'This user has not published anything yet.'}
+            </EmptyState>
+          )}
+          {result && (
+            <Pagination page={result.page} totalPages={result.totalPages} total={result.total} onChange={setPage} />
+          )}
+        </section>
+      </div>
     </div>
   );
 }

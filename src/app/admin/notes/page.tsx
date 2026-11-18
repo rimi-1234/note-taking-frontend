@@ -3,8 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { RequireAdmin } from '@/components/guards';
+import { ActivityIcon, LayersIcon, UsersIcon } from '@/components/icons';
 import { Pagination } from '@/components/pagination';
+import {
+  Alert,
+  Avatar,
+  EmptyState,
+  NoteCardSkeleton,
+  PageHeader,
+  StatCard,
+  StatsSkeleton,
+  stagger,
+} from '@/components/ui';
 import { api } from '@/lib/api';
+import { relativeTime } from '@/lib/format';
 import { ApiError, type Note, type Paginated, type PublicUser } from '@/lib/types';
 
 type AdminNote = Note & {
@@ -29,12 +41,10 @@ function AdminNotesContent() {
   useEffect(() => {
     void (async () => {
       try {
-        const data = await api<Paginated<PublicUser>>('/admin/users', {
-          query: { page: 1, limit: 100 },
-        });
+        const data = await api<Paginated<PublicUser>>('/admin/users', { query: { page: 1, limit: 100 } });
         setUsers(data.data);
       } catch {
-        // Filter still works if typed manually; ignore list failure.
+        // The notes list still works without the owner dropdown.
       }
     })();
   }, []);
@@ -44,7 +54,7 @@ function AdminNotesContent() {
       setError(null);
       try {
         const data = await api<Paginated<AdminNote>>('/admin/notes', {
-          query: { page, limit: 10, owner: owner || undefined },
+          query: { page, limit: 9, owner: owner || undefined },
         });
         setResult(data);
       } catch (err) {
@@ -54,52 +64,88 @@ function AdminNotesContent() {
   }, [page, owner]);
 
   return (
-    <div className="stack page-enter">
-      <section className="panel stack">
-        <div className="page-head">
-          <h1>Admin · All notes</h1>
-          <p className="muted">View-only. Filtering uses the owner index.</p>
-        </div>
-        {error && <div className="error">{error}</div>}
-        <label>
-          Filter by owner
-          <select
-            value={owner}
-            onChange={(e) => {
-              setOwner(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All users</option>
-            {users.map((u) => (
-              <option key={u._id} value={u._id}>
-                {u.name} ({u.email})
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
+    <div className="page page-enter">
+      <PageHeader
+        eyebrow="Admin"
+        title="All notes"
+        description="A read-only view of every user's notes."
+        actions={
+          <label className="toolbar-select">
+            <span className="sr-only">Filter by owner</span>
+            <select
+              value={owner}
+              onChange={(e) => {
+                setOwner(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All owners</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      />
 
-      <section className="panel stack">
-        <div className="list">
-          {result?.data.map((note) => (
-            <article key={note._id} className="card">
-              <h3>{note.title}</h3>
-              <p>{note.content || <span className="muted">(empty)</span>}</p>
-              <p className="muted">
-                Owner:{' '}
-                <Link href={`/users/${note.owner._id}/posts`}>
-                  {note.owner.name} ({note.owner.email})
-                </Link>
-              </p>
-            </article>
-          ))}
-          {result && result.data.length === 0 && <p className="muted">No notes.</p>}
+      {result ? (
+        <div className="stats-grid">
+          <StatCard
+            index={0}
+            icon={<LayersIcon />}
+            label={owner ? 'Notes by owner' : 'Total notes'}
+            value={result.total}
+            hint={owner ? users.find((u) => u._id === owner)?.name ?? 'Filtered' : 'Every user'}
+          />
+          <StatCard
+            index={1}
+            tone="violet"
+            icon={<UsersIcon />}
+            label="Authors here"
+            value={new Set(result.data.map((n) => n.owner._id)).size}
+            hint="On this page"
+          />
+          <StatCard
+            index={2}
+            tone="teal"
+            icon={<ActivityIcon />}
+            label="Showing"
+            value={result.data.length}
+            hint={`Page ${result.page} of ${Math.max(result.totalPages, 1)}`}
+          />
         </div>
-        {result && (
-          <Pagination page={result.page} totalPages={result.totalPages} onChange={setPage} />
-        )}
-      </section>
+      ) : (
+        <StatsSkeleton />
+      )}
+
+      {error && <Alert>{error}</Alert>}
+
+      <div className="grid-cards grid-cards-3">
+        {!result && Array.from({ length: 6 }, (_, i) => <NoteCardSkeleton key={i} withOwner />)}
+        {result?.data.map((note, i) => (
+          <article key={note._id} className="card note-card" style={stagger(i)}>
+            <h3>{note.title}</h3>
+            <p className="note-body clamp">{note.content || <span className="muted">No content</span>}</p>
+            <Link href={`/users/${note.owner._id}/posts`} className="owner-line">
+              <Avatar name={note.owner.name} size="sm" />
+              <span>
+                <strong>{note.owner.name}</strong>
+                <span className="meta">{relativeTime(note.updatedAt)}</span>
+              </span>
+            </Link>
+          </article>
+        ))}
+      </div>
+      {result && result.data.length === 0 && (
+        <EmptyState icon={<LayersIcon size={28} />} title="No notes found">
+          {owner ? 'This user has no notes yet.' : 'Nobody has written a note yet.'}
+        </EmptyState>
+      )}
+      {result && (
+        <Pagination page={result.page} totalPages={result.totalPages} total={result.total} onChange={setPage} />
+      )}
     </div>
   );
 }

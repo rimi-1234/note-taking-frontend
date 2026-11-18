@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LockIcon, MailIcon, ShieldIcon, SparkIcon, NoteIcon } from '@/components/icons';
+import { Alert, PasswordInput } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { ApiError } from '@/lib/types';
@@ -16,14 +18,19 @@ function loginErrorMessage(err: unknown): string {
   return 'Login failed';
 }
 
+const highlights = [
+  { icon: <NoteIcon size={18} />, text: 'Private notes only you can edit' },
+  { icon: <ShieldIcon size={18} />, text: 'Rotating, revocable sessions' },
+  { icon: <SparkIcon size={18} />, text: 'Admin insights across users' },
+];
+
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('Admin12345!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && user) router.replace('/notes');
@@ -45,93 +52,87 @@ export default function LoginPage() {
 
   return (
     <div className="login-screen">
-      <section className="login-visual" aria-label="Brand">
+      <section className="login-visual" aria-label="About Secure Notes">
         <div className="login-media" aria-hidden>
-          <div className="login-media-grid">
-            <div className="login-shot login-shot-main">
-              <Image
-                src="/login/notebook.jpg"
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 860px) 100vw, 55vw"
-              />
-            </div>
-            <div className="login-shot login-shot-side">
-              <Image src="/login/notes.jpg" alt="" fill sizes="280px" />
-            </div>
-            <div className="login-shot login-shot-tall">
-              <Image src="/login/desk.jpg" alt="" fill sizes="240px" />
-            </div>
+          <div className="login-shot login-shot-main">
+            <Image src="/login/notebook.jpg" alt="" fill priority sizes="(max-width: 960px) 100vw, 40vw" />
+          </div>
+          <div className="login-shot login-shot-side">
+            <Image src="/login/notes.jpg" alt="" fill sizes="(max-width: 960px) 50vw, 20vw" />
+          </div>
+          <div className="login-shot login-shot-tall">
+            <Image src="/login/desk.jpg" alt="" fill sizes="(max-width: 960px) 50vw, 20vw" />
           </div>
         </div>
 
         <div className="login-visual-inner">
-          <div className="login-mark" aria-hidden />
-          <h1>Secure Notes</h1>
-          <p>Private notes, rotating sessions, and admin tools — built for calm focus.</p>
+          <span className="login-badge">
+            <LockIcon size={14} /> Secure, revocable sessions
+          </span>
+          <h1>
+            Your thoughts,
+            <br />
+            <span className="gradient-text">safely kept.</span>
+          </h1>
+          <p>A calm, private space for notes and posts — with admin tools built in.</p>
+          <ul className="login-highlights">
+            {highlights.map((item) => (
+              <li key={item.text}>
+                <span>{item.icon}</span>
+                {item.text}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
       <section className="login-panel">
-        <form className="panel login-card stack" onSubmit={onSubmit}>
-          <div>
-            <h2>Welcome back</h2>
-            <p className="muted lead">Sign in to restore your secure session.</p>
+        <form className="login-card" onSubmit={onSubmit}>
+          <div className="login-card-brand">
+            <span className="brand-mark" aria-hidden />
+            <span className="brand-name">Secure Notes</span>
           </div>
-          {error && <div className="error">{error}</div>}
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+          <div className="login-card-head">
+            <h2>Welcome back</h2>
+            <p>Sign in to continue to your workspace.</p>
+          </div>
+
+          {error && <Alert>{error}</Alert>}
+
+          <label className="field">
+            <span>Email</span>
+            <div className="input-icon">
+              <MailIcon size={18} />
+              <input
+                type="email"
+                autoComplete="username"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="field">
+            <span>Password</span>
+            <PasswordInput
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              placeholder="Enter your password"
               required
             />
           </label>
-          <label>
-            Password
-            <div className="password-field">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                onClick={() => setShowPassword((value) => !value)}
-              >
-                {showPassword ? (
-                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-                    <path
-                      fill="currentColor"
-                      d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M3.27 2 2 3.27l2.78 2.78A12.8 12.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.7 0 3.3-.34 4.77-.94L19.73 21 21 19.73 3.27 2z"
-                      opacity="0.35"
-                    />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-                    <path
-                      fill="currentColor"
-                      d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 .001 6.001A3 3 0 0 0 12 9z"
-                    />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </label>
-          <button className="btn" type="submit" disabled={submitting || loading}>
+
+          <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={submitting || loading}>
+            {submitting ? <span className="btn-spinner" aria-hidden /> : null}
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <p className="login-foot">
+            <ShieldIcon size={14} /> Sessions refresh securely and can be revoked at any time.
+          </p>
         </form>
       </section>
     </div>

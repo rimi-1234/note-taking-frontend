@@ -1,7 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Manrope, Sora, IBM_Plex_Mono } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
-import { Nav } from '@/components/nav';
+import { AppFrame } from '@/components/nav';
 import './globals.css';
 
 const display = Sora({
@@ -27,15 +27,18 @@ export const metadata: Metadata = {
   description: 'Private notes with secure sessions',
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#4f46e5',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <AuthProvider>
-          <div className="app-shell">
-            <Nav />
-            {children}
-          </div>
+          <AppFrame>{children}</AppFrame>
         </AuthProvider>
       </body>
     </html>

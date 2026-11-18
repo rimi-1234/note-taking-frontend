@@ -3,8 +3,11 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { RequireAuth } from '@/components/guards';
+import { ClockIcon, CrownIcon, LockIcon, TagIcon, UserIcon } from '@/components/icons';
+import { Alert, Avatar, PageHeader, PasswordInput, StatCard } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { formatDate, parseList } from '@/lib/format';
 import { ApiError, type PublicUser } from '@/lib/types';
 
 export default function ProfilePage() {
@@ -32,13 +35,9 @@ function ProfileContent() {
     setError(null);
     setMessage(null);
     try {
-      const interestList = interests
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
       const res = await api<{ user: PublicUser }>('/users/me', {
         method: 'PATCH',
-        body: { name: name.trim(), interests: interestList },
+        body: { name: name.trim(), interests: parseList(interests) },
       });
       setUser(res.user);
       setMessage('Profile updated.');
@@ -69,64 +68,125 @@ function ProfileContent() {
     }
   }
 
+  const previewInterests = parseList(interests);
+
   return (
-    <div className="stack page-enter">
-      <section className="panel stack">
-        <div className="page-head">
-          <h1>Profile</h1>
-          <p className="muted">
-            Signed in as <span className="chip">{user?.email}</span> ({user?.role})
-          </p>
+    <div className="page page-enter">
+      <PageHeader eyebrow="Account" title="Profile" description="Manage how you appear and keep your account secure." />
+
+      <section className="card profile-hero">
+        <Avatar name={user?.name} size="lg" />
+        <div className="profile-hero-text">
+          <h2>{user?.name}</h2>
+          <p>{user?.email}</p>
+          <div className="chips">
+            <span className={`badge ${user?.role === 'admin' ? 'badge-admin' : ''}`}>{user?.role}</span>
+            {user?.createdAt && <span className="meta">Member since {formatDate(user.createdAt)}</span>}
+          </div>
         </div>
-        {error && <div className="error">{error}</div>}
-        {message && <p className="muted">{message}</p>}
-        <form className="stack" onSubmit={onSaveProfile}>
-          <label>
-            Name
+      </section>
+
+      <div className="stats-grid">
+        <StatCard
+          index={0}
+          icon={<TagIcon />}
+          label="Interests"
+          value={user?.interests.length ?? 0}
+          hint={user?.interests.slice(0, 3).join(', ') || 'None added yet'}
+        />
+        <StatCard
+          index={1}
+          tone="amber"
+          icon={<CrownIcon />}
+          label="Role"
+          value={user?.role === 'admin' ? 'Admin' : 'Member'}
+          hint={user?.role === 'admin' ? 'Full management access' : 'Standard access'}
+        />
+        <StatCard
+          index={2}
+          tone="teal"
+          icon={<ClockIcon />}
+          label="Member since"
+          value={user?.createdAt ? formatDate(user.createdAt) : '—'}
+          hint="Account created"
+        />
+      </div>
+
+      {error && <Alert>{error}</Alert>}
+      {message && <Alert tone="success">{message}</Alert>}
+
+      <div className="two-col">
+        <form className="card stack" onSubmit={onSaveProfile}>
+          <div className="card-title">
+            <span className="card-title-icon">
+              <UserIcon size={18} />
+            </span>
+            <h2>Personal details</h2>
+          </div>
+          <label className="field">
+            <span>Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
-          <label>
-            Interests (comma-separated)
+          <label className="field">
+            <span>Interests</span>
             <input
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
-              placeholder="chess, reading"
+              placeholder="chess, reading, hiking"
             />
+            <small className="hint">Separate with commas.</small>
           </label>
-          <button className="btn" type="submit" disabled={busy}>
-            Save profile
-          </button>
+          {previewInterests.length > 0 && (
+            <div className="chips">
+              {previewInterests.map((item) => (
+                <span key={item} className="chip">
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="form-actions">
+            <button className="btn btn-primary" type="submit" disabled={busy}>
+              Save profile
+            </button>
+          </div>
         </form>
-      </section>
 
-      <section className="panel stack">
-        <h2>Change password</h2>
-        <p className="muted">This signs you out everywhere after a successful change.</p>
-        <form className="stack" onSubmit={onChangePassword}>
-          <label>
-            Current password
-            <input
-              type="password"
+        <form className="card stack" onSubmit={onChangePassword}>
+          <div className="card-title">
+            <span className="card-title-icon">
+              <LockIcon size={18} />
+            </span>
+            <h2>Change password</h2>
+          </div>
+          <p className="muted small">For your safety, this signs you out on every device.</p>
+          <label className="field">
+            <span>Current password</span>
+            <PasswordInput
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={setCurrentPassword}
+              autoComplete="current-password"
               required
             />
           </label>
-          <label>
-            New password (min 8)
-            <input
-              type="password"
+          <label className="field">
+            <span>New password</span>
+            <PasswordInput
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={setNewPassword}
+              autoComplete="new-password"
               minLength={8}
               required
             />
+            <small className="hint">At least 8 characters.</small>
           </label>
-          <button className="btn" type="submit" disabled={busy}>
-            Update password
-          </button>
+          <div className="form-actions">
+            <button className="btn btn-dark" type="submit" disabled={busy}>
+              Update password
+            </button>
+          </div>
         </form>
-      </section>
+      </div>
     </div>
   );
 }
