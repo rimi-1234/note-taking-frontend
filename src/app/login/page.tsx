@@ -3,13 +3,14 @@
 import Image from 'next/image';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { ApiError } from '@/lib/types';
 
 function loginErrorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   if (err instanceof TypeError) {
-    return 'Cannot reach the API. Make sure the backend is running on http://localhost:4000.';
+    return `Cannot reach the API at ${API_URL}. Check that the backend is running and allows this site (CORS).`;
   }
   if (err instanceof Error && err.message) return err.message;
   return 'Login failed';
