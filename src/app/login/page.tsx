@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LockIcon, MailIcon, ShieldIcon, SparkIcon, NoteIcon } from '@/components/icons';
-import { Alert, PasswordInput } from '@/components/ui';
+import { Alert, Avatar, PasswordInput } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { ApiError } from '@/lib/types';
@@ -24,6 +24,14 @@ const highlights = [
   { icon: <SparkIcon size={18} />, text: 'Admin insights across users' },
 ];
 
+// Public demo accounts created by `npm run seed:demo` in the backend (regular users, no admin rights).
+const DEMO_PASSWORD = 'Demo12345!';
+const demoAccounts = [
+  { name: 'Alice Writer', email: 'alice@example.com', tagline: 'Chess & reading' },
+  { name: 'Bob Reader', email: 'bob@example.com', tagline: 'Reading & music' },
+  { name: 'Carol Coder', email: 'carol@example.com', tagline: 'Chess & coding' },
+];
+
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const router = useRouter();
@@ -31,23 +39,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoEmail, setDemoEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && user) router.replace('/notes');
   }, [loading, user, router]);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function signIn(loginEmail: string, loginPassword: string) {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
+      await login(loginEmail.trim(), loginPassword);
       router.replace('/notes');
     } catch (err) {
       setError(loginErrorMessage(err));
     } finally {
       setSubmitting(false);
+      setDemoEmail(null);
     }
+  }
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    await signIn(email, password);
+  }
+
+  async function onDemo(accountEmail: string) {
+    setEmail(accountEmail);
+    setPassword(DEMO_PASSWORD);
+    setDemoEmail(accountEmail);
+    await signIn(accountEmail, DEMO_PASSWORD);
   }
 
   return (
@@ -126,9 +147,42 @@ export default function LoginPage() {
           </label>
 
           <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={submitting || loading}>
-            {submitting ? <span className="btn-spinner" aria-hidden /> : null}
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting && !demoEmail ? <span className="btn-spinner" aria-hidden /> : null}
+            {submitting && !demoEmail ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <div className="demo-divider">
+            <span>or try a demo account</span>
+          </div>
+
+          <div className="demo-list">
+            {demoAccounts.map((account, i) => (
+              <button
+                key={account.email}
+                type="button"
+                className="demo-account"
+                style={{ '--i': i } as React.CSSProperties}
+                disabled={submitting || loading}
+                onClick={() => onDemo(account.email)}
+              >
+                <Avatar name={account.name} size="sm" />
+                <span className="demo-account-text">
+                  <strong>{account.name}</strong>
+                  <span>{account.tagline}</span>
+                </span>
+                {demoEmail === account.email ? (
+                  <span className="btn-spinner demo-spinner" aria-hidden />
+                ) : (
+                  <span className="demo-go" aria-hidden>
+                    →
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <p className="demo-note">
+            Demo password: <code>{DEMO_PASSWORD}</code>
+          </p>
 
           <p className="login-foot">
             <ShieldIcon size={14} /> Sessions refresh securely and can be revoked at any time.
